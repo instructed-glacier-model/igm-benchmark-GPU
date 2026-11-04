@@ -1,0 +1,34 @@
+{
+ "label": "rtx_4090",
+ "date": "2026-11-02T19:13:49",
+ "machine": "x86_64",
+ "cpu_count": 12,
+ "gpu_index": 0,
+ "cases": [
+  "online_f32",
+  "offline_f32"
+ ],
+ "ratios": [
+  16,
+  8,
+  4,
+  3,
+  2,
+  1
+ ],
+ "years": 100.0,
+ "gpu_name": "NVIDIA GeForce RTX 4090",
+ "gpu_mem": "24564 MiB",
+ "driver": "580.159.04",
+ "tensorflow": "2.17.0",
+ "keras": "3.14.1",
+ "cuda": "12.3",
+ "cudnn": "8",
+ "igm_version": "3.2.0",
+ "tf_gpu": "NVIDIA GeForce RTX 4090",
+ "compute_capability": [
+  8,
+  9
+ ],
+ "igm_commit": "v3.2.1-7-gd368b9e6-dirty"
+}

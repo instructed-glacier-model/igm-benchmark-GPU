@@ -1,0 +1,35 @@
+{
+ "label": "rtx_pro_6000_blackwell_max_q",
+ "date": "2026-11-02T21:38:09",
+ "machine": "x86_64",
+ "cpu_count": 12,
+ "gpu_index": 0,
+ "cases": [
+  "online_f32",
+  "offline_f32"
+ ],
+ "ratios": [
+  16,
+  8,
+  4,
+  3,
+  2,
+  1
+ ],
+ "years": 100.0,
+ "gpu_name": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+ "gpu_mem": "97887 MiB",
+ "driver": "580.105.08",
+ "tensorflow": "2.17.0",
+ "keras": "3.14.1",
+ "cuda": "12.8",
+ "cudnn": "9",
+ "igm_version": "3.2.0",
+ "tf_gpu": "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+ "compute_capability": [
+  12,
+  0
+ ],
+ "igm_commit": "v3.2.1-7-gd368b9e6-dirty",
+ "note": "ratios 16..2: 100 yr; ratio 1 (100 m): offline_f32 only, 5 yr (online_f32 r01 = OOM). date = last call (ratio 1)."
+}

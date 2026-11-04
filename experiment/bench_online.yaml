@@ -1,0 +1,76 @@
+# @package _global_
+# Online ice flow: dahunet 6 x 24 from random weights, 1 Adam iteration per step.
+# European Alps, ice-free start, constant SMB (ELA 2300 m). run_bench.py sets the grid and the run length.
+
+core:
+  url_data: ""
+  logging: False
+  print_comp: True            # module timers, read by bench_timer
+
+defaults:
+  - /user/conf/processes@processes.bench_sync: bench_sync
+  - /user/conf/processes@processes.bench_timer: bench_timer
+  - override /inputs:
+    - local
+  - override /processes:
+    - smb
+    - iceflow
+    - bench_sync              # waits for the GPU after iceflow
+    - time
+    - thk
+    - bench_timer             # records the step time, writes bench.json
+
+inputs:
+  local:
+    filename: ${hydra:runtime.cwd}/data/input_bench.nc
+    coarsening:
+      ratio: 1
+
+processes:
+  time:
+    start: 0.0
+    end: 100.0
+    save: 1.0e6               # no output
+    cfl: 0.3
+    step_max: 1.0
+
+  smb:
+    method: simple
+    simple:
+      array:
+        - ['time', 'gradabl', 'gradacc', 'ela', 'accmax']
+        - [0,      0.009,     0.005,     2300,  2.0]
+        - [1.0e6,  0.009,     0.005,     2300,  2.0]
+
+  iceflow:
+    method: unified
+    numerics:
+      Nz: 2
+      basis_horizontal: central
+      basis_vertical: molho
+    physics:
+      sliding:
+        u_ref: 100.0
+        tau_ref: 0.2153697218796329
+    unified:
+      mapping: network
+      network:
+        pretrained: false
+        architecture: dahunet
+        params:
+          backend: cnn
+          features: [dsdx, dsdy, grad_s, u_sia, u_weertman]
+          nb_out_filter: 24
+          nb_layers: 6
+          conv_ker_size: 3
+          residual: true
+      optimizer: adam
+      adam:
+        lr: 5.0e-04
+        lr_init: 1.0e-03
+      nbit_warmup: -1
+      nbit_init: 0
+      nbit: 1
+      retrain_freq: 1
+      data_preparation:
+        framesizemax: 99999   # whole grid in one frame (no patching)
