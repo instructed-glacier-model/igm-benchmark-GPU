@@ -86,7 +86,7 @@ def main():
                 ax.set_xlabel("grid spacing dx [m]")
             if j == 0:
                 ax.set_ylabel(ylab)
-    fig.legend(loc="outside upper center", ncol=min(4, len(data)), frameon=False)
+    fig.legend(loc="outside upper center", ncol=min(3, len(data)), frameon=False)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(args.out, dpi=150)
     print(f"wrote {args.out}")

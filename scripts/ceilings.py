@@ -8,6 +8,7 @@ vendor-neutral (CUDA or ROCm). A few seconds per test.
   conv_*            3x3 convolutions shaped like dahunet layers on the 400 m grid (1 x 1505 x 2255, NHWC),
                     C -> C channels, plain tf.function as in IGM's network: forward, backward w.r.t. the
                     input, backward w.r.t. the filter. Reported as achieved TFLOP/s (2 * H * W * 9 * C^2).
+  conv*_nchw_*      with --nchw: the same convolutions in NCHW layout (IGM uses TF's default, NHWC)
 
   ./scripts/ceilings.py --label rx_7900_xtx      # -> results/<label>/ceilings.json
 """
@@ -54,21 +55,24 @@ def matmul():
     return 2 * n**3 / timeit(f) / 1e12
 
 
-def conv(c):
-    x = tf.random.normal([1, H, W, c])
+def conv(c, fmt="NHWC"):
+    x = tf.random.normal([1, H, W, c] if fmt == "NHWC" else [1, c, H, W])
     k = tf.random.normal([3, 3, c, c]) * 0.1
     flops = 2 * H * W * 9 * c * c
-    fwd = tf.function(lambda: tf.nn.conv2d(x, k, 1, "SAME"))
+    s = [1, 1, 1, 1]
+    fwd = tf.function(lambda: tf.nn.conv2d(x, k, s, "SAME", data_format=fmt))
     dy = fwd()
-    bwd_in = tf.function(lambda: tf.compat.v1.nn.conv2d_backprop_input(x.shape, k, dy, [1, 1, 1, 1], "SAME"))
-    bwd_k = tf.function(lambda: tf.compat.v1.nn.conv2d_backprop_filter(x, k.shape, dy, [1, 1, 1, 1], "SAME"))
-    return {f"conv{c}_{n}_TFLOPs": flops / timeit(f) / 1e12
+    bwd_in = tf.function(lambda: tf.compat.v1.nn.conv2d_backprop_input(x.shape, k, dy, s, "SAME", data_format=fmt))
+    bwd_k = tf.function(lambda: tf.compat.v1.nn.conv2d_backprop_filter(x, k.shape, dy, s, "SAME", data_format=fmt))
+    tag = "" if fmt == "NHWC" else "_" + fmt.lower()
+    return {f"conv{c}{tag}_{n}_TFLOPs": flops / timeit(f) / 1e12
             for n, f in (("fwd", fwd), ("bwd_input", bwd_in), ("bwd_filter", bwd_k))}
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--label", required=True, help="results/<label>/ceilings.json")
+    p.add_argument("--nchw", action="store_true", help="also time the convolutions in NCHW layout")
     a = p.parse_args()
     g = tf.config.list_physical_devices("GPU")
     out = {"tf_gpu": tf.config.experimental.get_device_details(g[0]).get("device_name") if g else None,
@@ -76,6 +80,8 @@ def main():
            "copy_GBps": copy_bw(), "matmul_TFLOPs": matmul()}
     for c in (24, 48):
         out.update(conv(c))
+        if a.nchw:
+            out.update(conv(c, "NCHW"))
     out = {k: round(v, 2) if isinstance(v, float) else v for k, v in out.items()}
     print(json.dumps(out, indent=1))
     d = Path(__file__).resolve().parent.parent / "results" / a.label

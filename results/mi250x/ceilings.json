@@ -1,0 +1,19 @@
+{
+ "tf_gpu": "AMD Instinct MI250X",
+ "tensorflow": "2.17.1",
+ "rocm_build": true,
+ "copy_GBps": 996.51,
+ "matmul_TFLOPs": 36.6,
+ "conv24_fwd_TFLOPs": 8.69,
+ "conv24_bwd_input_TFLOPs": 8.61,
+ "conv24_bwd_filter_TFLOPs": 6.18,
+ "conv24_nchw_fwd_TFLOPs": 12.01,
+ "conv24_nchw_bwd_input_TFLOPs": 11.94,
+ "conv24_nchw_bwd_filter_TFLOPs": 7.78,
+ "conv48_fwd_TFLOPs": 13.57,
+ "conv48_bwd_input_TFLOPs": 13.59,
+ "conv48_bwd_filter_TFLOPs": 10.86,
+ "conv48_nchw_fwd_TFLOPs": 18.09,
+ "conv48_nchw_bwd_input_TFLOPs": 18.08,
+ "conv48_nchw_bwd_filter_TFLOPs": 13.69
+}
