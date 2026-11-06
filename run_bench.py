@@ -97,13 +97,14 @@ def _amd_name(gpu: int) -> str:
 
 
 def smi_used_mib(gpu: int) -> int | None:
-    """None where neither nvidia-smi nor amdgpu sysfs reports it (e.g. unified memory)."""
+    """None where neither nvidia-smi nor amdgpu sysfs reports it (unified memory: MI300A reports 0 VRAM)."""
     try:
         return int(smi(gpu, "memory.used").splitlines()[0])
     except Exception:
         pass
     try:
-        return int(amd_read(gpu, "mem_info_vram_used")) // 2**20
+        if int(amd_read(gpu, "mem_info_vram_total")):
+            return int(amd_read(gpu, "mem_info_vram_used")) // 2**20
     except ValueError:
         return None
 
@@ -138,8 +139,8 @@ def collect_meta(args) -> dict:
     meta = {"label": args.label, "date": datetime.now().astimezone().isoformat(timespec="seconds"),
             "machine": platform.machine(), "cpu_count": os.cpu_count(), "gpu_index": args.gpu,
             "cases": args.cases, "ratios": args.ratios, "years": args.years}
-    env = {k: os.environ[k] for k in ("TF_CUDNN_WORKSPACE_LIMIT_IN_MB", "XLA_FLAGS", "MIOPEN_FIND_MODE")
-           if k in os.environ}
+    env = {k: os.environ[k] for k in ("TF_CUDNN_WORKSPACE_LIMIT_IN_MB", "XLA_FLAGS", "TF_FORCE_GPU_ALLOW_GROWTH",
+                                      "MIOPEN_FIND_MODE", "MIOPEN_FIND_ENFORCE") if k in os.environ}
     if env:
         meta["env"] = env
     q = smi(args.gpu, "name,memory.total,driver_version")
@@ -148,7 +149,8 @@ def collect_meta(args) -> dict:
         meta.update(gpu_name=name, gpu_mem=f"{mem} MiB", driver=driver)
     elif amd_dev(args.gpu):
         total = amd_read(args.gpu, "mem_info_vram_total")
-        meta.update(gpu_name=amd_name(args.gpu), gpu_mem=f"{int(total) // 2**20} MiB" if total else None,
+        meta.update(gpu_name=amd_name(args.gpu),
+                    gpu_mem=f"{int(total) // 2**20} MiB" if total and int(total) else None,     # None: APU
                     driver="amdgpu " + Path("/sys/module/amdgpu/version").read_text().strip()
                     if Path("/sys/module/amdgpu/version").exists() else "amdgpu")
     out = sh([sys.executable, "-c", VERSIONS], timeout=300, env=run_env(args.gpu))

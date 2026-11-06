@@ -53,7 +53,11 @@ docker run --rm -it --device /dev/kfd --device /dev/dri \
     -e HOME=/bench/outputs/.home -v $PWD:/bench -w /bench igm-bench:rocm ./run_bench.py --quick
 ```
 
-`run_bench.py` reads the GPU memory from `nvidia-smi` on NVIDIA and from the amdgpu sysfs files on AMD.
+Without Docker, `podman build` takes the same Dockerfile (on CSCS Alps, `enroot import podman://igm-bench:rocm`
+then makes the squashfs image for the Container Engine).
+
+`run_bench.py` reads the GPU memory from `nvidia-smi` on NVIDIA and from the amdgpu sysfs files on AMD (not on the
+MI300A, whose memory is shared with the CPU).
 
 ## Run
 
@@ -78,14 +82,20 @@ Ice-flow time per step (ms) / TensorFlow memory peak (GiB):
 | [RTX 4090](results/rtx_4090) (24 GB) | 93 / 11.2 | OOM | 122 / 4.2 | 489 / 13.5 |
 | [RTX PRO 6000 Blackwell Max-Q](results/rtx_pro_6000_blackwell_max_q) (96 GB) | 99 / 12.5 | 409 / 46.7 | 83 / 5.8 | 351 / 22.5 |
 | [AMD Radeon RX 7900 XTX](results/rx_7900_xtx) (24 GB) | 1168 / 16.8 | OOM (at 300 m) | 128 / 2.4 | 521 / 9.5 |
+| [AMD Instinct MI250X](results/mi250x), one GCD (64 GB) | 172 / 12.4 | 710 / 51.0 | 217 / 4.9 | 854 / 19.1 |
+| [AMD Instinct MI300A](results/mi300a) (128 GB, shared with the CPU) | 75 / 12.4 | 272 / 50.2 | 92 / 4.9 | 368 / 19.1 |
 
-The NVIDIA GPUs with TensorFlow 2.17 and IGM `d368b9e6`, whose code for these cases is that of v3.2.1; the AMD GPU
-with TensorFlow 2.17.1 (ROCm 7.0.2) and IGM 3.2.1.
+The NVIDIA GPUs with TensorFlow 2.17 and IGM `d368b9e6`, whose code for these cases is that of v3.2.1; the AMD GPUs
+with TensorFlow 2.17.1 (ROCm 7.0.2) and IGM 3.2.1, the MI250X and MI300A on CSCS's Beverin.
 
 On the RX 7900 XTX, inference (offline) is on par with the RTX 4090, but training (online) is 5-12× slower: the
-convolution gradient with respect to the weights is slow in MIOpen on this GPU (next section). Online at 300 m
-first aborts on MIOpen's 4 GiB work-buffer cap; with `TF_CUDNN_WORKSPACE_LIMIT_IN_MB=12288` it runs out of
-memory (the RTX 4090 runs it).
+convolution gradient with respect to the weights is slow in MIOpen on this GPU (next section). Not so on the
+data-centre AMD GPUs: the MI300A trains faster than the NVIDIA GPUs here; one GCD of the MI250X (half the card)
+is about 2× slower than the RTX 4090.
+
+On the AMD GPUs, the finer grids first abort on MIOpen's 4 GiB work-buffer cap; they are rerun with
+`TF_CUDNN_WORKSPACE_LIMIT_IN_MB=12288` (`meta.json` lists them). The RX 7900 XTX then runs out of memory at
+online 300 m (the RTX 4090 runs it).
 
 The 100 m points of the figure (`--ratios 1`, 54 M cells) are slow: once an activation tensor exceeds 2³¹
 elements, the convolutions fall back to much slower kernels (about 40×). The memory peak includes cuDNN/XLA
@@ -102,6 +112,8 @@ software stack reaches, and which operation limits the ice flow.
 | GPU | copy GB/s (spec) | matmul TFLOP/s (spec) | conv C=24: fwd / ∂input / ∂weights | conv C=48: fwd / ∂input / ∂weights |
 |---|---|---|---|---|
 | AMD Radeon RX 7900 XTX | 673 (960) | 25.6 (61.4, dual-issue) | 11.9 / 11.5 / **0.26** | 17.8 / 19.2 / **0.99** |
+| AMD Instinct MI250X, one GCD | 997 (1638) | 36.6 (47.9, matrix / packed) | 8.7 / 8.6 / 6.2 | 13.6 / 13.6 / 10.9 |
+| AMD Instinct MI300A | 2160 (5300) | 72.4 (122.6) | 17.8 / 17.2 / 10.3 | 28.0 / 27.9 / 20.3 |
 
 To be completed with the NVIDIA GPUs.
 

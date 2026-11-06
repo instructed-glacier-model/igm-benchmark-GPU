@@ -1,0 +1,19 @@
+{
+ "tf_gpu": "AMD Instinct MI300A",
+ "tensorflow": "2.17.1",
+ "rocm_build": true,
+ "copy_GBps": 2159.58,
+ "matmul_TFLOPs": 72.44,
+ "conv24_fwd_TFLOPs": 17.82,
+ "conv24_bwd_input_TFLOPs": 17.22,
+ "conv24_bwd_filter_TFLOPs": 10.32,
+ "conv24_nchw_fwd_TFLOPs": 23.19,
+ "conv24_nchw_bwd_input_TFLOPs": 21.77,
+ "conv24_nchw_bwd_filter_TFLOPs": 12.16,
+ "conv48_fwd_TFLOPs": 27.97,
+ "conv48_bwd_input_TFLOPs": 27.91,
+ "conv48_bwd_filter_TFLOPs": 20.27,
+ "conv48_nchw_fwd_TFLOPs": 36.43,
+ "conv48_nchw_bwd_input_TFLOPs": 36.83,
+ "conv48_nchw_bwd_filter_TFLOPs": 25.3
+}
