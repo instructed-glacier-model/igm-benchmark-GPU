@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 
 import matplotlib
@@ -21,6 +22,10 @@ HERE = Path(__file__).resolve().parent
 CASES = ["online_f32", "offline_f32"]
 COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
 INK, INK2, GRID = "#0b0b0b", "#52514e", "#e4e3df"
+
+
+def short(name: str) -> str:
+    return re.sub(r"\s+(Workstation|Server) Edition$", "", name)
 
 
 def load(d: Path):
@@ -65,7 +70,7 @@ def main():
                              if r["case"] == case and r["status"] == "ok" and r[key] == r[key])
                 if pts:
                     ax.plot(*zip(*pts), "-o", color=c, lw=2, ms=6, mec="white", mew=1.5,
-                            label=meta.get("gpu_name", label) if j == 0 and i == 0 else None)
+                            label=short(meta.get("gpu_name", label)) if j == 0 and i == 0 else None)
             ax.set_xscale("log")
             ax.set_xticks(dx_ticks, [f"{d:g}" for d in dx_ticks])
             ax.minorticks_off()
@@ -94,7 +99,7 @@ def main():
             r = next((r for r in rows if r["case"] == case and r["dx_m"] == args.dx), None)
             cells.append("-" if r is None else r["status"] if r["status"] != "ok"
                          else f"{r['iceflow_s'] * 1e3:.1f} / {r['tf_peak_gib']:.2f}")
-        print(f"{meta.get('gpu_name', label)[:33]:<34}" + "".join(f"{c:>22}" for c in cells))
+        print(f"{short(meta.get('gpu_name', label))[:33]:<34}" + "".join(f"{c:>22}" for c in cells))
 
 
 if __name__ == "__main__":
