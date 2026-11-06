@@ -35,7 +35,8 @@ BASE_NX, BASE_NY, BASE_DX = 9020, 6020, 100.0      # data/input_bench.nc
 DEFAULT_RATIOS = [16, 8, 4, 3, 2]                  # 1600 m ... 200 m
 QUICK_RATIOS, QUICK_YEARS = [16, 8], 20
 
-OOM_PAT = re.compile(r"ResourceExhausted|out of memory|OOM when allocating|CUDA_ERROR_OUT_OF_MEMORY", re.I)
+OOM_PAT = re.compile(r"ResourceExhausted|out of memory|OOM when allocating|CUDA_ERROR_OUT_OF_MEMORY|"
+                     r"hipErrorOutOfMemory|HIP_ERROR_OUT_OF_MEMORY", re.I)
 COLS = ["case", "ratio", "dx_m", "nx", "ny", "cells_M", "status", "n_steps",
         "step_s", "iceflow_s", "iceflow_p10_s", "iceflow_p90_s", "Mcells_per_s",
         "first_step_s", "tf_peak_gib", "smi_peak_gib", "wall_s"]
@@ -49,7 +50,7 @@ b = tf.sysconfig.get_build_info()
 g = tf.config.list_physical_devices("GPU")
 d = tf.config.experimental.get_device_details(g[0]) if g else {}
 print(json.dumps(dict(tensorflow=tf.__version__, keras=keras.__version__, cuda=b.get("cuda_version"),
-                      cudnn=b.get("cudnn_version"), igm_version=version("igm-model"),
+                      cudnn=b.get("cudnn_version"), rocm=(open("/opt/rocm/.info/version").read().strip() if b.get("is_rocm_build") and os.path.exists("/opt/rocm/.info/version") else None), igm_version=version("igm-model"),
                       igm_path=os.path.dirname(igm.__file__), tf_gpu=d.get("device_name"),
                       compute_capability=d.get("compute_capability"))))
 """
@@ -66,16 +67,49 @@ def smi(gpu: int, query: str) -> str:
     return sh(["nvidia-smi", f"--query-gpu={query}", "--format=csv,noheader,nounits", "-i", str(gpu)])
 
 
+def amd_dev(gpu: int) -> Path | None:
+    """sysfs device of the gpu-th AMD GPU (amdgpu driver, PCI order), None if there is none."""
+    devs = sorted({d.resolve() for d in Path("/sys/class/drm").glob("card[0-9]*/device")
+                   if (d / "mem_info_vram_used").exists()})
+    return devs[gpu] if gpu < len(devs) else None
+
+
+def amd_read(gpu: int, name: str) -> str:
+    d = amd_dev(gpu)
+    try:
+        return (d / name).read_text().strip() if d else ""
+    except OSError:
+        return ""
+
+
+def amd_name(gpu: int) -> str:
+    name = _amd_name(gpu)
+    return name if not name or name.startswith("AMD") else "AMD " + name
+
+
+def _amd_name(gpu: int) -> str:
+    try:
+        return json.loads(sh(["amd-smi", "static", "-g", str(gpu), "-a", "--json"]))[
+            "gpu_data"][0]["asic"]["market_name"]
+    except Exception:
+        m = re.search(r"Card Series:\s*(.+)", sh(["rocm-smi", "-d", str(gpu), "--showproductname"]))
+        return m.group(1).strip() if m else ""
+
+
 def smi_used_mib(gpu: int) -> int | None:
-    """None where nvidia-smi does not report it (e.g. unified memory)."""
+    """None where neither nvidia-smi nor amdgpu sysfs reports it (e.g. unified memory)."""
     try:
         return int(smi(gpu, "memory.used").splitlines()[0])
     except Exception:
+        pass
+    try:
+        return int(amd_read(gpu, "mem_info_vram_used")) // 2**20
+    except ValueError:
         return None
 
 
 class SmiSampler(threading.Thread):
-    """Peak of the nvidia-smi used memory (MiB), polled every 0.5 s."""
+    """Peak of the GPU used memory (MiB, nvidia-smi or amdgpu sysfs), polled every 0.5 s."""
 
     def __init__(self, gpu: int):
         super().__init__(daemon=True)
@@ -97,17 +131,26 @@ class SmiSampler(threading.Thread):
 
 def run_env(gpu: int) -> dict:
     return dict(os.environ, TF_USE_LEGACY_KERAS="0", TF_CPP_MIN_LOG_LEVEL="3", PYTHONUNBUFFERED="1",
-                CUDA_VISIBLE_DEVICES=str(gpu))
+                CUDA_VISIBLE_DEVICES=str(gpu), HIP_VISIBLE_DEVICES=str(gpu))
 
 
 def collect_meta(args) -> dict:
-    meta = {"label": args.label, "date": datetime.now().isoformat(timespec="seconds"),
+    meta = {"label": args.label, "date": datetime.now().astimezone().isoformat(timespec="seconds"),
             "machine": platform.machine(), "cpu_count": os.cpu_count(), "gpu_index": args.gpu,
             "cases": args.cases, "ratios": args.ratios, "years": args.years}
+    env = {k: os.environ[k] for k in ("TF_CUDNN_WORKSPACE_LIMIT_IN_MB", "XLA_FLAGS", "MIOPEN_FIND_MODE")
+           if k in os.environ}
+    if env:
+        meta["env"] = env
     q = smi(args.gpu, "name,memory.total,driver_version")
     if q:
         name, mem, driver = [p.strip() for p in q.split(",")][:3]
         meta.update(gpu_name=name, gpu_mem=f"{mem} MiB", driver=driver)
+    elif amd_dev(args.gpu):
+        total = amd_read(args.gpu, "mem_info_vram_total")
+        meta.update(gpu_name=amd_name(args.gpu), gpu_mem=f"{int(total) // 2**20} MiB" if total else None,
+                    driver="amdgpu " + Path("/sys/module/amdgpu/version").read_text().strip()
+                    if Path("/sys/module/amdgpu/version").exists() else "amdgpu")
     out = sh([sys.executable, "-c", VERSIONS], timeout=300, env=run_env(args.gpu))
     try:
         meta.update(json.loads(out.splitlines()[-1]))
@@ -193,8 +236,8 @@ def write_csv(rows, path: Path):
 
 
 def default_label(gpu: int) -> str:
-    name = smi(gpu, "name") or "gpu"
-    name = re.sub(r"^NVIDIA\s+|GeForce\s+|\s+(Workstation|Server) Edition$", "", name)
+    name = smi(gpu, "name") or (amd_dev(gpu) and amd_name(gpu)) or "gpu"
+    name = re.sub(r"^NVIDIA\s+|GeForce\s+|^AMD\s+|Radeon\s+|\s+(Workstation|Server) Edition$", "", name)
     return re.sub(r"[^A-Za-z0-9]+", "_", name).strip("_").lower()
 
 
@@ -207,6 +250,8 @@ def main():
     p.add_argument("--years", type=float, help="model years per run, 1-yr steps (default 100)")
     p.add_argument("--quick", action="store_true", help=f"smoke test: ratios {QUICK_RATIOS}, {QUICK_YEARS} yr")
     p.add_argument("--timeout-min", type=float, default=60, help="kill a run after N min (0 = never)")
+    p.add_argument("--idle-mib", type=int, default=1000,
+                   help="the GPU counts as idle below this used memory (MiB, default %(default)s)")
     p.add_argument("--force", action="store_true", help="run even if the GPU is not idle")
     p.add_argument("--dry-run", "-n", action="store_true", help="print the runs only")
     args = p.parse_args()
@@ -220,7 +265,7 @@ def main():
     args.label = args.label or default_label(args.gpu) + ("_quick" if args.quick else "")
 
     used = smi_used_mib(args.gpu)
-    if used is not None and used > 1000 and not (args.force or args.dry_run):
+    if used is not None and used > args.idle_mib and not (args.force or args.dry_run):
         sys.exit(f"GPU {args.gpu} already uses {used} MiB: the benchmark needs an idle GPU (--force to override).")
 
     res_dir, out_root = HERE / "results" / args.label, HERE / "outputs" / args.label

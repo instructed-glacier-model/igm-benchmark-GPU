@@ -1,0 +1,35 @@
+{
+ "label": "rx_7900_xtx",
+ "date": "2026-11-06T11:37:04+01:00",
+ "machine": "x86_64",
+ "cpu_count": 16,
+ "gpu_index": 0,
+ "cases": [
+  "online_f32",
+  "offline_f32"
+ ],
+ "ratios": [
+  16,
+  8,
+  4,
+  3,
+  2
+ ],
+ "years": 100.0,
+ "env": {
+  "TF_CUDNN_WORKSPACE_LIMIT_IN_MB": "12288"
+ },
+ "gpu_name": "AMD Radeon RX 7900 XTX",
+ "gpu_mem": "24560 MiB",
+ "driver": "amdgpu 6.16.13",
+ "tensorflow": "2.17.1",
+ "keras": "3.11.3",
+ "cuda": null,
+ "cudnn": null,
+ "rocm": "7.0.2",
+ "igm_version": "3.2.1",
+ "tf_gpu": "Radeon RX 7900 XTX",
+ "compute_capability": null,
+ "container": "rocm/tensorflow:rocm7.0.2-py3.12-tf2.17-dev (docker/Dockerfile.rocm)",
+ "note": "online_f32 at 300 m rerun with env TF_CUDNN_WORKSPACE_LIMIT_IN_MB=12288 (the default 4 GiB MIOpen workspace cap aborts it); it then runs out of memory, so 200 m is not run. All other runs with default settings."
+}

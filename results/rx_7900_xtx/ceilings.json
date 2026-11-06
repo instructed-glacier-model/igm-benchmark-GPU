@@ -1,0 +1,13 @@
+{
+ "tf_gpu": "Radeon RX 7900 XTX",
+ "tensorflow": "2.17.1",
+ "rocm_build": true,
+ "copy_GBps": 672.58,
+ "matmul_TFLOPs": 25.57,
+ "conv24_fwd_TFLOPs": 11.9,
+ "conv24_bwd_input_TFLOPs": 11.5,
+ "conv24_bwd_filter_TFLOPs": 0.26,
+ "conv48_fwd_TFLOPs": 17.82,
+ "conv48_bwd_input_TFLOPs": 19.15,
+ "conv48_bwd_filter_TFLOPs": 0.99
+}
