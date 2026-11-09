@@ -1,0 +1,35 @@
+{
+ "label": "mi250x",
+ "date": "2026-11-06T18:26:45+01:00",
+ "machine": "x86_64",
+ "cpu_count": 128,
+ "gpu_index": 0,
+ "cases": [
+  "online_f32",
+  "offline_f32"
+ ],
+ "ratios": [
+  16,
+  8,
+  4,
+  3,
+  2
+ ],
+ "years": 100.0,
+ "gpu_name": "AMD Instinct MI250X",
+ "gpu_mem": "65520 MiB",
+ "driver": "amdgpu 6.12.12",
+ "tensorflow": "2.17.1",
+ "keras": "3.11.3",
+ "cuda": null,
+ "cudnn": null,
+ "rocm": "7.0.2",
+ "igm_version": "3.2.1",
+ "tf_gpu": "AMD Instinct MI250X",
+ "compute_capability": null,
+ "env": {
+  "TF_CUDNN_WORKSPACE_LIMIT_IN_MB": "12288"
+ },
+ "container": "rocm/tensorflow:rocm7.0.2-py3.12-tf2.17-dev (docker/Dockerfile.rocm), squashfs in the CSCS Container Engine",
+ "note": "One GCD of an MI250X (GPU 0 of a full CSCS Beverin mi200 node; each GCD is its own GPU with 64 GB). online_f32 at 300 m and 200 m and offline_f32 at 200 m rerun with env TF_CUDNN_WORKSPACE_LIMIT_IN_MB=12288 (the default 4 GiB MIOpen workspace cap aborts them); all other runs with default settings."
+}
