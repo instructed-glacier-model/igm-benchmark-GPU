@@ -1,0 +1,36 @@
+{
+ "label": "rx_7900_xtx_oclwrw",
+ "date": "2026-11-10T08:25:05+00:00",
+ "machine": "x86_64",
+ "cpu_count": 16,
+ "gpu_index": 0,
+ "cases": [
+  "online_f32"
+ ],
+ "ratios": [
+  16,
+  8,
+  4,
+  3,
+  2
+ ],
+ "years": 100.0,
+ "env": {
+  "MIOPEN_FIND_MODE": "1",
+  "MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2": "1",
+  "MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS": "1"
+ },
+ "gpu_name": "AMD Radeon RX 7900 XTX",
+ "gpu_mem": "24560 MiB",
+ "driver": "amdgpu 6.16.13",
+ "tensorflow": "2.17.1",
+ "keras": "3.11.3",
+ "cuda": null,
+ "cudnn": null,
+ "rocm": "7.0.2",
+ "igm_version": "3.2.1",
+ "tf_gpu": "Radeon RX 7900 XTX",
+ "compute_capability": null,
+ "igm_commit": "",
+ "note": "online_f32 with MIOpen's ConvOclBwdWrW53 weight-gradient kernel enabled (MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2=1 MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1 MIOPEN_FIND_MODE=1). INCORRECT RESULTS: the kernel returns NaN on most IGM shapes (results/rx_7900_xtx/miopen/drv_oclwrw53_verify.txt, drv_oclwrw53_cpuref.txt); the ice volume is NaN from step 13 at 400 m. The times only show what a working kernel would give. 300/200 m abort on the 4 GiB work-buffer cap."
+}

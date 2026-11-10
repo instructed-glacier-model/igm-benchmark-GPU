@@ -1,0 +1,3 @@
+{
+ "note": "scripts/ceilings.py --nchw with MIOPEN_FIND_MODE=1 (NORMAL find): same as the default find mode; the *_nchw_* entries are the raw NCHW convolutions, without TensorFlow's layout transposes."
+}

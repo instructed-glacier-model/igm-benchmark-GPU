@@ -1,0 +1,39 @@
+{
+ "label": "rx_7900_xtx_patches",
+ "date": "2026-11-10T08:18:02+00:00",
+ "machine": "x86_64",
+ "cpu_count": 16,
+ "gpu_index": 0,
+ "cases": [
+  "online_f32"
+ ],
+ "ratios": [
+  16,
+  8,
+  4,
+  3,
+  2
+ ],
+ "years": 100.0,
+ "igm_args": [
+  "processes.iceflow.unified.data_preparation.framesizemax=512",
+  "processes.iceflow.unified.data_preparation.patches_per_batch=3"
+ ],
+ "gpu_name": "AMD Radeon RX 7900 XTX",
+ "gpu_mem": "24560 MiB",
+ "driver": "amdgpu 6.16.13",
+ "tensorflow": "2.17.1",
+ "keras": "3.11.3",
+ "cuda": null,
+ "cudnn": null,
+ "rocm": "7.0.2",
+ "igm_version": "3.2.1",
+ "tf_gpu": "Radeon RX 7900 XTX",
+ "compute_capability": null,
+ "igm_commit": "",
+ "variant": "patches",
+ "env": {
+  "TF_CUDNN_WORKSPACE_LIMIT_IN_MB": "16384 (200 m only)"
+ },
+ "note": "online_f32 only (offline is unaffected by patches): the emulator is trained on patches of at most 512 cells, Adam sweeping them in mini-batches of 3 patches (400 m: 15 patches of 501 x 451, 300 m: 24 of 501 x 501, 200 m: 54 of 501 x 501). On this GPU the mini-batches keep MIOpen on a Winograd weight-gradient kernel instead of GemmWrwUniversal (results/rx_7900_xtx/miopen_wrw.md). 1600 m and 800 m rows come from the one-batch run (patches_per_batch=99): 2 patches at 1600 m, which is the same configuration, and all 6 patches in one batch at 800 m. 200 m run with TF_CUDNN_WORKSPACE_LIMIT_IN_MB=16384 because TensorFlow allocates the work buffer of the largest applicable MIOpen algorithm (GEMM, 11.7 GB) for the whole-grid forward convolution before find; MIOpen then chooses Winograd (no work buffer)."
+}

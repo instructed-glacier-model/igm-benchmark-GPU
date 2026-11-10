@@ -1,0 +1,76 @@
+##### -n 1 -H 512 -W 512
+--- default find
+MIOpen Backward Weights Conv. Algorithm: 3, Solution: 84/ConvBinWinogradRxSf2x3g1
+GPU Kernel Time Backward Weights Conv. Elapsed: 6.832742 ms (average)
+--- MIOPEN_FIND_MODE=1
+MIOpen Backward Weights Conv. Algorithm: 3, Solution: 84/ConvBinWinogradRxSf2x3g1
+GPU Kernel Time Backward Weights Conv. Elapsed: 6.835442 ms (average)
+--- -S ConvOclBwdWrW2<1>
+Warning: Solution id (18) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW2<4>
+Warning: Solution id (20) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW2NonTunable
+Warning: Solution id (23) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW53
+Warning: Solution id (24) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+##### -n 13 -H 512 -W 512
+--- default find
+MIOpen Backward Weights Conv. Algorithm: 3, Solution: 84/ConvBinWinogradRxSf2x3g1
+GPU Kernel Time Backward Weights Conv. Elapsed: 46.488598 ms (average)
+--- MIOPEN_FIND_MODE=1
+MIOpen Backward Weights Conv. Algorithm: 3, Solution: 53/ConvBinWinogradRxSf2x3
+GPU Kernel Time Backward Weights Conv. Elapsed: 47.304920 ms (average)
+--- -S ConvOclBwdWrW2<1>
+Warning: Solution id (18) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW2<4>
+Warning: Solution id (20) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW2NonTunable
+Warning: Solution id (23) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW53
+Warning: Solution id (24) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+##### -n 1 -H 256 -W 256
+--- default find
+MIOpen Backward Weights Conv. Algorithm: 3, Solution: 84/ConvBinWinogradRxSf2x3g1
+GPU Kernel Time Backward Weights Conv. Elapsed: 1.741864 ms (average)
+--- MIOPEN_FIND_MODE=1
+MIOpen Backward Weights Conv. Algorithm: 3, Solution: 53/ConvBinWinogradRxSf2x3
+GPU Kernel Time Backward Weights Conv. Elapsed: 1.748197 ms (average)
+--- -S ConvOclBwdWrW2<1>
+Warning: Solution id (18) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW2<4>
+Warning: Solution id (20) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW2NonTunable
+Warning: Solution id (23) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW53
+Warning: Solution id (24) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+##### -n 52 -H 256 -W 256
+--- default find
+MIOpen Backward Weights Conv. Algorithm: 3, Solution: 53/ConvBinWinogradRxSf2x3
+GPU Kernel Time Backward Weights Conv. Elapsed: 52.744736 ms (average)
+--- MIOPEN_FIND_MODE=1
+MIOpen Backward Weights Conv. Algorithm: 3, Solution: 53/ConvBinWinogradRxSf2x3
+GPU Kernel Time Backward Weights Conv. Elapsed: 52.134861 ms (average)
+--- -S ConvOclBwdWrW2<1>
+Warning: Solution id (18) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW2<4>
+Warning: Solution id (20) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW2NonTunable
+Warning: Solution id (23) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c
+--- -S ConvOclBwdWrW53
+Warning: Solution id (24) is not reported by the library. Trying it anyway...
+MIOpen Error: /longer_pathname_so_that_rpms_can_support_packaging_the_debug_info_for_all_os_profiles/src/rocm-libraries/projects/miopen/src/ocl/convolutionocl.c

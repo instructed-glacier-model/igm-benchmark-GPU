@@ -1,0 +1,14 @@
+--- ConvOclBwdWrW2NonTunable   Warning: Solution id (23) is not reported by the library. Trying it anyway... ConvOclBwdWrW2NonTunable 12.407665 ms 
+
+--- ConvOclBwdWrW2<1>          Warning: Solution id (18) is not reported by the library. Trying it anyway... MIOpen Error: ocl/convolutionocl.cpp:1232: The supplied solution id: ConvOclBwdWrW2<1> is not applicable to the current problem 
+
+--- ConvOclBwdWrW2<2>          Warning: Solution id (19) is not reported by the library. Trying it anyway... MIOpen Error: ocl/convolutionocl.cpp:1232: The supplied solution id: ConvOclBwdWrW2<2> is not applicable to the current problem 
+
+--- ConvOclBwdWrW2<4>          Warning: Solution id (20) is not reported by the library. Trying it anyway... MIOpen Error: ocl/convolutionocl.cpp:1232: The supplied solution id: ConvOclBwdWrW2<4> is not applicable to the current problem 
+
+--- ConvOclBwdWrW2<8>          Warning: Solution id (21) is not reported by the library. Trying it anyway... MIOpen Error: ocl/convolutionocl.cpp:1232: The supplied solution id: ConvOclBwdWrW2<8> is not applicable to the current problem 
+
+--- ConvOclBwdWrW2<16>         Warning: Solution id (22) is not reported by the library. Trying it anyway... MIOpen Error: ocl/convolutionocl.cpp:1232: The supplied solution id: ConvOclBwdWrW2<16> is not applicable to the current problem 
+
+--- ConvOclBwdWrW53            Warning: Solution id (24) is not reported by the library. Trying it anyway... ConvOclBwdWrW53 2.277072 ms 
+

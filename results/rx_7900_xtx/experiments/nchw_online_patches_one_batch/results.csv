@@ -1,0 +1,4 @@
+case,ratio,dx_m,nx,ny,cells_M,status,n_steps,step_s,iceflow_s,iceflow_p10_s,iceflow_p90_s,Mcells_per_s,first_step_s,tf_peak_gib,smi_peak_gib,wall_s
+online_f32,16,1600,563,376,0.211688,ok,101,0.0510557,0.0438805,0.0435719,0.044292,4.8242,1.47628,0.739941,2.08398,36.2727
+online_f32,8,800,1127,752,0.847504,ok,101,0.145024,0.1379,0.137221,0.139085,6.14579,1.48474,3.03227,5.08496,66.7649
+online_f32,4,400,2255,1505,3.39378,OOM,0,nan,nan,nan,nan,nan,nan,nan,17.043,40.5817

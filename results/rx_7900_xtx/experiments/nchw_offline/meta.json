@@ -1,0 +1,33 @@
+{
+ "label": "rx_7900_xtx_nchw",
+ "date": "2026-11-10T08:04:08+00:00",
+ "machine": "x86_64",
+ "cpu_count": 16,
+ "gpu_index": 0,
+ "cases": [
+  "offline_f32"
+ ],
+ "ratios": [
+  16,
+  8,
+  4,
+  2
+ ],
+ "years": 100.0,
+ "env": {
+  "IGM_BENCH_NCHW": "1"
+ },
+ "gpu_name": "AMD Radeon RX 7900 XTX",
+ "gpu_mem": "24560 MiB",
+ "driver": "amdgpu 6.16.13",
+ "tensorflow": "2.17.1",
+ "keras": "3.11.3",
+ "cuda": null,
+ "cudnn": null,
+ "rocm": "7.0.2",
+ "igm_version": "3.2.1",
+ "tf_gpu": "Radeon RX 7900 XTX",
+ "compute_capability": null,
+ "igm_commit": "",
+ "note": "offline_f32 with the dahunet CNN rebuilt with channels_first Conv2D layers (one transpose in, one out; same weights, checked equal to the original on the GPU). Times identical to the default NHWC model: TensorFlow's layout optimizer already converts the convolution stack in graph mode. The variant is therefore not kept in the repository."
+}

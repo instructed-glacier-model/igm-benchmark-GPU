@@ -28,6 +28,11 @@ def short(name: str) -> str:
     return re.sub(r"\s+(Workstation|Server) Edition$", "", name)
 
 
+def name(label: str, meta: dict) -> str:
+    n = short(meta.get("gpu_name", label))
+    return f"{n}, {meta['variant']}" if meta.get("variant") else n
+
+
 def load(d: Path):
     rows = list(csv.DictReader((d / "results.csv").open()))
     for r in rows:
@@ -70,7 +75,7 @@ def main():
                              if r["case"] == case and r["status"] == "ok" and r[key] == r[key])
                 if pts:
                     ax.plot(*zip(*pts), "-o", color=c, lw=2, ms=6, mec="white", mew=1.5,
-                            label=short(meta.get("gpu_name", label)) if j == 0 and i == 0 else None)
+                            label=name(label, meta) if j == 0 and i == 0 else None)
             ax.set_xscale("log")
             ax.set_xticks(dx_ticks, [f"{d:g}" for d in dx_ticks])
             ax.minorticks_off()
@@ -99,7 +104,7 @@ def main():
             r = next((r for r in rows if r["case"] == case and r["dx_m"] == args.dx), None)
             cells.append("-" if r is None else r["status"] if r["status"] != "ok"
                          else f"{r['iceflow_s'] * 1e3:.1f} / {r['tf_peak_gib']:.2f}")
-        print(f"{short(meta.get('gpu_name', label))[:33]:<34}" + "".join(f"{c:>22}" for c in cells))
+        print(f"{name(label, meta)[:33]:<34}" + "".join(f"{c:>22}" for c in cells))
 
 
 if __name__ == "__main__":
