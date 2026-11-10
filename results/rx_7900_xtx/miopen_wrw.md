@@ -43,6 +43,12 @@ MIOpen 3.5 ships tuned databases for 13 GPU families (down to gfx803) and none f
 (`MIOPEN_FIND_ENFORCE`) has nothing to work on either. ROCm 7.2.4 behaves identically; ROCm 10.1 picks the same
 solver and is slower (212 ms, [`miopen/drv_newer_rocm.txt`](miopen/drv_newer_rocm.txt)).
 
+The GEMM itself is the known weak spot: `GemmWrwUniversal` issues one `rocblas_gemm_ex` with m = 216, n = 24 and
+k = 3.4 million (the output positions), and rocBLAS handles that shape badly (ROCm/rocm-libraries#12222: time
+quadratic in k for small m and n, reported from PyTorch with `GemmWrwUniversal` as the caller; hipBLASLt does the
+same product in milliseconds). On the data-centre GPUs find has implicit-GEMM kernels to fall back on; on RDNA 3
+in float32 it has nothing.
+
 The 4 GiB "Failed to allocate scratch memory" abort of IGM at the finer grids is TensorFlow allocating, before its
 algorithm search, the work buffer of the largest *applicable* algorithm, i.e. this Im2Col buffer (5.2 GB at 300 m,
 11.7 GB at 200 m), even where MIOpen then selects a kernel without one: for the forward and ∂input convolutions
@@ -129,7 +135,9 @@ reference (`MIOPEN_DRIVER_USE_GPU_REFERENCE=0`), [`miopen/drv_oclwrw53_verify.tx
 
 The naive and Winograd kernels are exact on the same shapes. In IGM the ice volume is NaN from step 13 at 400 m
 ([`experiments/oclwrw53`](experiments/oclwrw53)); at 1600 and 800 m it stays finite but cannot be trusted. AMD's
-default is right; the kernel is evidence for the issue below, not a workaround.
+default is right; the kernel is evidence for the issue below, not a workaround. The kernel was ported to HIP in
+April 2026 (ROCm/rocm-libraries#6935, `ConvHipBwdWrW53`, "fixing a reduce-stage accuracy bug", tested on MI200);
+on gfx11 it stays behind the deprecated-solver gate, so whether that port is correct here is untested.
 
 **Find mode and tuning.** `MIOPEN_FIND_MODE=1` gives the same solvers and times as the default DYNAMIC_HYBRID
 mode ([`experiments/find_mode_1/ceilings.json`](experiments/find_mode_1/ceilings.json)); `MIOPEN_FIND_ENFORCE`
@@ -168,11 +176,15 @@ workspace) but fails verification (`-V 1`, GPU and CPU reference) with NaN on mo
 Use case: physics-informed training of a small CNN on a whole 2D domain (IGM, the Instructed Glacier Model):
 batch 1, 24-48 channels, images of 1-14 Mpx, float32.
 
-History on your side: ROCm/MIOpen#2080 deprecated the `ConvOcl*` solvers for everything newer than gfx103x
+Related on your side: ROCm/rocm-libraries#12222 (`rocblas_gemm_ex` quadratic in k for small m, n: the call
+`GemmWrwUniversal` makes here, m = 216, n = 24, k = 3.4 M); #6935 (the HIP port of `ConvOclBwdWrW53`, still
+deprecated-gated on gfx11); ROCm/MIOpen#2080 deprecated the `ConvOcl*` solvers for everything newer than gfx103x
 (2023), with the June 2024 comment there that `ConvOclBwdWrW2<*>` "deliver good performance" and could be kept
 "to avoid inadequate performance of WrW convolutions" on the new GPUs; ROCm/MIOpen#3634 then disabled them on
-gfx11/12 because of random failures (2025). The result is that gfx11 has no fast weight-gradient path left for
-large images.
+gfx11/12 because of random failures (2025); #15191 and #14965 show the same fp32-on-RDNA fall-through for other
+convolutions; #14833 adds direct weight-gradient kernels for gfx1250. The result today is that gfx11 has no fast
+weight-gradient path for large images. The issue goes to ROCm/rocm-libraries (the MIOpen repository is retired),
+title prefix `[MIOpen]`.
 
 Expected: a correct weight-gradient solver for RDNA3 that handles large images, e.g. the OpenCL kernel fixed, a
 Winograd path without the 2^22 limit, a split-K GEMM for the 24 × 216 × (H·W) shape, or a WMMA implicit-GEMM kernel.
