@@ -137,8 +137,9 @@ To be completed with the NVIDIA GPUs.
 On the RX 7900 XTX (RDNA 3, gfx1100) the weight gradient reaches 18-46× less than the forward pass: MIOpen 3.5 has
 no efficient kernel for it on this architecture and falls back to Im2Col + GEMM (`GemmWrwUniversal`). The find
 mode, tuning and newer ROCm (7.2, 10.1) change nothing; the OpenCL kernel that MIOpen hides behind debug switches
-on gfx11 is 7× faster but returns NaN on most shapes. The investigation, the MIOpenDriver probes and a draft issue
-for MIOpen are in [results/rx_7900_xtx/miopen_wrw.md](results/rx_7900_xtx/miopen_wrw.md).
+on gfx11 is 7× faster but returns NaN on most shapes. The investigation, the MIOpenDriver probes and the issue
+filed with AMD ([ROCm/rocm-libraries#15446](https://github.com/ROCm/rocm-libraries/issues/15446)) are in
+[results/rx_7900_xtx/miopen_wrw.md](results/rx_7900_xtx/miopen_wrw.md).
 
 ## Add your GPU
 

@@ -135,9 +135,10 @@ reference (`MIOPEN_DRIVER_USE_GPU_REFERENCE=0`), [probe A7](miopen_probes.md#a7-
 
 The naive and Winograd kernels are exact on the same shapes. In IGM the ice volume is NaN from step 13 at 400 m
 ([`experiments/oclwrw53`](experiments/oclwrw53)); at 1600 and 800 m it stays finite but cannot be trusted. AMD's
-default is right; the kernel is evidence for the issue below, not a workaround. The kernel was ported to HIP in
-April 2026 (ROCm/rocm-libraries#6935, `ConvHipBwdWrW53`, "fixing a reduce-stage accuracy bug", tested on MI200);
-on gfx11 it stays behind the deprecated-solver gate, so whether that port is correct here is untested.
+default is right; the kernel is evidence for the issue filed below (rocm-libraries#15446), not a workaround. The
+kernel was ported to HIP in April 2026 (ROCm/rocm-libraries#6935, `ConvHipBwdWrW53`, "fixing a reduce-stage
+accuracy bug", tested on MI200); on gfx11 it stays behind the deprecated-solver gate, so whether that port is
+correct here is untested.
 
 **Find mode and tuning.** `MIOPEN_FIND_MODE=1` gives the same solvers and times as the default DYNAMIC_HYBRID
 mode ([`experiments/find_mode_1/ceilings.json`](experiments/find_mode_1/ceilings.json)); `MIOPEN_FIND_ENFORCE`
@@ -151,40 +152,15 @@ TensorFlow's layout optimizer already does this in graph mode. The eager micro-b
 
 **Newer ROCm.** 7.2.4 (TensorFlow 2.20) is identical; 10.1 is slower on the weight gradient (212 ms).
 
-## Draft issue for ROCm/MIOpen
+## Issue filed with AMD
 
-**Title:** gfx1100: no correct and efficient convolution weight-gradient solver for large single-image float32
-problems (GemmWrwUniversal at 0.3 TFLOP/s; ConvOclBwdWrW53 7× faster but returns NaN)
-
-On a Radeon RX 7900 XTX (gfx1100), ROCm 7.0.2 / MIOpen 3.5.0 (also 7.2.4 and 10.1), the backward-weights
-convolution below runs at 0.26 TFLOP/s, while forward and backward-data run at 12 TFLOP/s:
-
-    MIOpenDriver conv -n 1 -c 24 -H 1505 -W 2255 -k 24 -y 3 -x 3 -p 1 -q 1 -u 1 -v 1 -l 1 -j 1 -m conv -g 1 -F 4 -t 1 -V 0
-    -> Solution: GemmWrwUniversal, 130 ms (workspace 2 932 221 600 bytes); ConvDirectNaiveConvWrw: 918 ms
-
-`MIOPEN_LOG_LEVEL=6` shows these two as the only applicable solvers, with `MIOPEN_FIND_MODE=1` too. Forcing the
-others with `-S`: `ConvAsmBwdWrW3x3` is gfx8/9 only, `ConvHipImplicitGemmV4R1WrW`/`V4R4WrW` fail to compile, the
-Xdlops solvers need MFMA. `ConvBinWinogradRxSf2x3` works and is 2.8× faster, but its `(C+1)·R·S < 2^22` shader
-limit, which for the weight gradient means `(N+1)·H·W < 2^22`, excludes images above ~2 Mpx.
-
-The OpenCL solvers disabled on gfx11/12 by LWPMIOPEN-1392, re-enabled with `MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2=1
-MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS=1`: `ConvOclBwdWrW53` runs the problem above in 18 ms (2.4 TFLOP/s, no
-workspace) but fails verification (`-V 1`, GPU and CPU reference) with NaN on most shapes, e.g. 1 × 24 × 376 × 563,
-752 × 1127, 1505 × 2255, 2006 × 3006, 1400², 1505², 1600², while 1024², 1200², 1024 × 2255 and batched 3 × 501²,
-15 × 501 × 451 verify. The same problem on an MI250X runs at 6.2 TFLOP/s (`ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC`).
-
-Use case: physics-informed training of a small CNN on a whole 2D domain (IGM, the Instructed Glacier Model):
-batch 1, 24-48 channels, images of 1-14 Mpx, float32.
-
-Related on your side: ROCm/rocm-libraries#12222 (`rocblas_gemm_ex` quadratic in k for small m, n: the call
-`GemmWrwUniversal` makes here, m = 216, n = 24, k = 3.4 M); #6935 (the HIP port of `ConvOclBwdWrW53`, still
-deprecated-gated on gfx11); ROCm/MIOpen#2080 deprecated the `ConvOcl*` solvers for everything newer than gfx103x
-(2023), with the June 2024 comment there that `ConvOclBwdWrW2<*>` "deliver good performance" and could be kept
-"to avoid inadequate performance of WrW convolutions" on the new GPUs; ROCm/MIOpen#3634 then disabled them on
-gfx11/12 because of random failures (2025); #15191 and #14965 show the same fp32-on-RDNA fall-through for other
-convolutions; #14833 adds direct weight-gradient kernels for gfx1250. The result today is that gfx11 has no fast
-weight-gradient path for large images. The issue goes to ROCm/rocm-libraries (the MIOpen repository is retired),
-title prefix `[MIOpen]`.
-
-Expected: a correct weight-gradient solver for RDNA3 that handles large images, e.g. the OpenCL kernel fixed, a
-Winograd path without the 2^22 limit, a split-K GEMM for the 24 × 216 × (H·W) shape, or a WMMA implicit-GEMM kernel.
+[ROCm/rocm-libraries#15446](https://github.com/ROCm/rocm-libraries/issues/15446) (2026-11-10): "[MIOpen] gfx1100
+fp32 3x3 backward-weights on large single images: only GemmWrwUniversal applies (0.26 TFLOP/s); ConvOclBwdWrW53 is
+7x faster but returns NaN". It carries the MIOpenDriver reproducer, the solver table, the NaN table of
+[probe A7](miopen_probes.md#a7-convoclbwdwrw53-verification), the use case and a link to this record, and names the
+related items: rocm-libraries#12222 (the `rocblas_gemm_ex` shape `GemmWrwUniversal` produces here), #6935 (the HIP
+port of `ConvOclBwdWrW53`, still deprecated-gated on gfx11), MIOpen#2080 and #3634 (deprecation and disabling of the
+OpenCL solvers), #15191 and #14965 (the same fp32-on-RDNA fall-through for other convolutions), #14833 (direct
+weight-gradient kernels for gfx1250). Asked for: a correct fp32 weight-gradient path on gfx11 for large single
+images, through a GEMM that handles the small-m/n, large-k shape, `ConvHipBwdWrW53` fixed and allowed on RDNA, a
+Winograd variant without the 2^22 limit, or direct kernels as for gfx1250.
