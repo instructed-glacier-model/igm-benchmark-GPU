@@ -1,4 +1,0 @@
---- -F 1  miopenConvolutionFwdAlgoWinograd	4.78247	0 miopenConvolutionFwdAlgoGEMM	49.3853	11728886400 FW Chosen Algorithm: ConvBinWinogradRxSf2x3g1 , 0, 4.78247 Forward Conv. Elapsed: 4.393379 ms (average) 
-
---- -F 2  miopenConvolutionBwdDataAlgoWinograd	4.88809	0 miopenConvolutionBwdDataAlgoGEMM	59.0704	11728886400 BWD Chosen Algorithm: ConvBinWinogradRxSf2x3g1 , 0, 4.88809 Backward Data Conv. Elapsed: 4.694382 ms (average) 
-

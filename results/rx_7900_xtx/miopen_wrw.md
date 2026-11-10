@@ -1,8 +1,8 @@
 # The slow convolution weight gradient on the Radeon RX 7900 XTX (gfx1100)
 
 Investigation record, 2026-11-09/10. Container `igm-bench:rocm` (ROCm 7.0.2, MIOpen 3.5.0, TensorFlow 2.17.1); also
-checked with ROCm 7.2.4 and 10.1. The MIOpenDriver probe tables are in [`miopen/`](miopen/), the IGM and
-`ceilings.py` runs of the variants in [`experiments/`](experiments/), the working configuration in
+checked with ROCm 7.2.4 and 10.1. The raw MIOpenDriver probes and the notes of the variant runs are in
+[miopen_probes.md](miopen_probes.md), the runs themselves in [`experiments/`](experiments/), the working configuration in
 [`../rx_7900_xtx_patches/`](../rx_7900_xtx_patches/).
 
 ## Symptom
@@ -27,7 +27,7 @@ MIOpen has exactly two weight-gradient solvers applicable on gfx1100 for this pr
 | `ConvDirectNaiveConvWrw` | 918 ms | reference kernel |
 
 Every other weight-gradient solver reports "not applicable" on this GPU, with `MIOPEN_FIND_MODE=1` as well
-(`MIOpenDriver ... -S <solver>`, [`miopen/drv_c24_solvers.txt`](miopen/drv_c24_solvers.txt)):
+(`MIOpenDriver ... -S <solver>`, [probe A1](miopen_probes.md#a1-weight-gradient-solvers-forced-one-by-one)):
 
 - `ConvOclBwdWrW2<1..16>`, `ConvOclBwdWrW2NonTunable`, `ConvOclBwdWrW53`: disabled on gfx11/gfx12 by MIOpen
   itself, "due to random GPU memory access faults" (`WORKAROUND_LWPMIOPEN_1392`, `conv_ocl_dir2D_bwdWrW_2.cpp`),
@@ -41,7 +41,7 @@ Every other weight-gradient solver reports "not applicable" on this GPU, with `M
 
 MIOpen 3.5 ships tuned databases for 13 GPU families (down to gfx803) and none for gfx1100, so tuning
 (`MIOPEN_FIND_ENFORCE`) has nothing to work on either. ROCm 7.2.4 behaves identically; ROCm 10.1 picks the same
-solver and is slower (212 ms, [`miopen/drv_newer_rocm.txt`](miopen/drv_newer_rocm.txt)).
+solver and is slower (212 ms, [probe A4](miopen_probes.md#a4-newer-rocm-images)).
 
 The GEMM itself is the known weak spot: `GemmWrwUniversal` issues one `rocblas_gemm_ex` with m = 216, n = 24 and
 k = 3.4 million (the output positions), and rocBLAS handles that shape badly (ROCm/rocm-libraries#12222: time
@@ -53,7 +53,7 @@ The 4 GiB "Failed to allocate scratch memory" abort of IGM at the finer grids is
 algorithm search, the work buffer of the largest *applicable* algorithm, i.e. this Im2Col buffer (5.2 GB at 300 m,
 11.7 GB at 200 m), even where MIOpen then selects a kernel without one: for the forward and ∂input convolutions
 over the whole 200 m grid, find picks Winograd (4.8 ms, no buffer) over GEMM (49 ms, 11.7 GB),
-[`miopen/drv_200m_fwd_bwd.txt`](miopen/drv_200m_fwd_bwd.txt). `TF_CUDNN_WORKSPACE_LIMIT_IN_MB` raises the cap.
+[probe A8](miopen_probes.md#a8-whole-200-m-grid-forward-and-input). `TF_CUDNN_WORKSPACE_LIMIT_IN_MB` raises the cap.
 
 ## The Winograd limit
 
@@ -72,14 +72,14 @@ dimensions take the place of the filter and the batch takes the place of the cha
 | 4 × 752 × 1128 (5 × 0.85 Mpx = 4.24 M: just above) | GemmWrwUniversal | 92 ms |
 | 1 × 1024 × 1024 | Winograd | 26 ms |
 
-([`miopen/drv_wino_limit.txt`](miopen/drv_wino_limit.txt), [`drv_wino_limit2.txt`](miopen/drv_wino_limit2.txt)).
+([probe A3](miopen_probes.md#a3-winograd-applicability-limit)).
 
 ## What works: training on patches, in mini-batches
 
 IGM's `unified.data_preparation.framesizemax` cuts the emulator's training domain into non-overlapping patches
 of at most that many cells, and `patches_per_batch` is the mini-batch size with which Adam sweeps all patches
 in every iteration (one update per mini-batch; `igm/processes/iceflow/unified/optimizers/adam.py`). On the
-patch shapes IGM produces (`ny // (ny // F + 1)` cells a side), [`miopen/drv_patch_shapes.txt`](miopen/drv_patch_shapes.txt):
+patch shapes IGM produces (`ny // (ny // F + 1)` cells a side), [probe A5](miopen_probes.md#a5-igms-patch-shapes):
 
 | grid | `framesizemax=512` | all patches in one call | `framesizemax=1024` | one call |
 |---|---|---|---|---|
@@ -125,8 +125,8 @@ sizes; `ConvOclBwdWrW2NonTunable` runs on 1024² only). It is fast, needs no wor
 | IGM online 1600 / 800 / 400 m | 57 / 210 / 1168 ms | | 17.7 / 63 / 231 ms |
 
 But it is wrong. Verified with `MIOpenDriver -V 1` against MIOpen's reference kernel and against the driver's CPU
-reference (`MIOPEN_DRIVER_USE_GPU_REFERENCE=0`), [`miopen/drv_oclwrw53_verify.txt`](miopen/drv_oclwrw53_verify.txt),
-[`drv_oclwrw53_cpuref.txt`](miopen/drv_oclwrw53_cpuref.txt):
+reference (`MIOPEN_DRIVER_USE_GPU_REFERENCE=0`), [probe A7](miopen_probes.md#a7-convoclbwdwrw53-verification),
+[probe A7](miopen_probes.md#a7-convoclbwdwrw53-verification):
 
 | shape (N × H × W, C = 24 unless noted) | ConvOclBwdWrW53 |
 |---|---|
