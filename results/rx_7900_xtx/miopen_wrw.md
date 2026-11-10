@@ -168,5 +168,11 @@ workspace) but fails verification (`-V 1`, GPU and CPU reference) with NaN on mo
 Use case: physics-informed training of a small CNN on a whole 2D domain (IGM, the Instructed Glacier Model):
 batch 1, 24-48 channels, images of 1-14 Mpx, float32.
 
+History on your side: ROCm/MIOpen#2080 deprecated the `ConvOcl*` solvers for everything newer than gfx103x
+(2023), with the June 2024 comment there that `ConvOclBwdWrW2<*>` "deliver good performance" and could be kept
+"to avoid inadequate performance of WrW convolutions" on the new GPUs; ROCm/MIOpen#3634 then disabled them on
+gfx11/12 because of random failures (2025). The result is that gfx11 has no fast weight-gradient path left for
+large images.
+
 Expected: a correct weight-gradient solver for RDNA3 that handles large images, e.g. the OpenCL kernel fixed, a
 Winograd path without the 2^22 limit, a split-K GEMM for the 24 × 216 × (H·W) shape, or a WMMA implicit-GEMM kernel.
