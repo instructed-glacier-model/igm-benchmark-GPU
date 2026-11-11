@@ -139,8 +139,11 @@ def collect_meta(args) -> dict:
     meta = {"label": args.label, "date": datetime.now().astimezone().isoformat(timespec="seconds"),
             "machine": platform.machine(), "cpu_count": os.cpu_count(), "gpu_index": args.gpu,
             "cases": args.cases, "ratios": args.ratios, "years": args.years}
+    if args.igm_args:
+        meta["igm_args"] = args.igm_args
     env = {k: os.environ[k] for k in ("TF_CUDNN_WORKSPACE_LIMIT_IN_MB", "XLA_FLAGS", "TF_FORCE_GPU_ALLOW_GROWTH",
-                                      "MIOPEN_FIND_MODE", "MIOPEN_FIND_ENFORCE") if k in os.environ}
+                                      "MIOPEN_FIND_MODE", "MIOPEN_FIND_ENFORCE",
+                                  "MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2", "MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS") if k in os.environ}
     if env:
         meta["env"] = env
     q = smi(args.gpu, "name,memory.total,driver_version")
@@ -177,7 +180,7 @@ def run_one(case: str, ratio: int, args, out_root: Path) -> dict:
     name = f"{case}_r{ratio:02d}"
     run_dir, log = out_root / name, out_root / f"{name}.log"
     cmd = ["igm_run", f"+experiment={CASES[case]}", f"inputs.local.coarsening.ratio={ratio}",
-           f"processes.time.end={args.years}", f"hydra.run.dir={run_dir}"]
+           f"processes.time.end={args.years}", f"hydra.run.dir={run_dir}"] + args.igm_args
     print(f"\n[bench] {case:<12} {dx:>5.0f} m  {nx} x {ny} ({nx * ny / 1e6:.2f} M cells)", flush=True)
     if args.dry_run:
         print("        " + " ".join(cmd))
@@ -252,6 +255,8 @@ def main():
     p.add_argument("--years", type=float, help="model years per run, 1-yr steps (default 100)")
     p.add_argument("--quick", action="store_true", help=f"smoke test: ratios {QUICK_RATIOS}, {QUICK_YEARS} yr")
     p.add_argument("--timeout-min", type=float, default=60, help="kill a run after N min (0 = never)")
+    p.add_argument("--igm-args", default="", help="extra igm_run overrides, space-separated, e.g. "
+                   "'processes.iceflow.unified.data_preparation.framesizemax=512' (recorded in meta.json)")
     p.add_argument("--idle-mib", type=int, default=1000,
                    help="the GPU counts as idle below this used memory (MiB, default %(default)s)")
     p.add_argument("--force", action="store_true", help="run even if the GPU is not idle")
@@ -264,6 +269,7 @@ def main():
     args.ratios = ([int(r) for r in args.ratios.split(",")] if args.ratios
                    else QUICK_RATIOS if args.quick else DEFAULT_RATIOS)
     args.years = args.years or (QUICK_YEARS if args.quick else 100.0)
+    args.igm_args = args.igm_args.split()
     args.label = args.label or default_label(args.gpu) + ("_quick" if args.quick else "")
 
     used = smi_used_mib(args.gpu)

@@ -69,9 +69,9 @@ From this folder, on an idle GPU:
 ./plot_bench.py            # figure and table of all results/*/
 ```
 
-`./run_bench.py -h` lists the options (`--gpu`, `--label`, `--cases`, `--ratios`, ...). Results go to
-`results/<label>/` (`results.csv`, `meta.json`), raw IGM runs and logs to `outputs/`. A case stops at its first
-grid that runs out of memory.
+`./run_bench.py -h` lists the options (`--gpu`, `--label`, `--cases`, `--ratios`, ...); `--igm-args` passes
+extra IGM configuration overrides, recorded in `meta.json`. Results go to `results/<label>/` (`results.csv`,
+`meta.json`), raw IGM runs and logs to `outputs/`. A case stops at its first grid that runs out of memory.
 
 ## Results
 
@@ -82,6 +82,7 @@ Ice-flow time per step (ms) / TensorFlow memory peak (GiB):
 | [RTX 4090](results/rtx_4090) (24 GB) | 93 / 11.2 | OOM | 122 / 4.2 | 489 / 13.5 |
 | [RTX PRO 6000 Blackwell Max-Q](results/rtx_pro_6000_blackwell_max_q) (96 GB) | 99 / 12.5 | 409 / 46.7 | 83 / 5.8 | 351 / 22.5 |
 | [AMD Radeon RX 7900 XTX](results/rx_7900_xtx) (24 GB) | 1168 / 16.8 | OOM (at 300 m) | 128 / 2.4 | 521 / 9.5 |
+| [AMD Radeon RX 7900 XTX, training on patches](results/rx_7900_xtx_patches) | 584 / 2.8 | 2313 / 6.0 | as above | as above |
 | [AMD Instinct MI250X](results/mi250x), one GCD (64 GB) | 172 / 12.4 | 710 / 51.0 | 217 / 4.9 | 854 / 19.1 |
 | [AMD Instinct MI300A](results/mi300a) (128 GB, shared with the CPU) | 75 / 12.4 | 272 / 50.2 | 92 / 4.9 | 368 / 19.1 |
 
@@ -93,9 +94,25 @@ convolution gradient with respect to the weights is slow in MIOpen on this GPU (
 data-centre AMD GPUs: the MI300A trains faster than the NVIDIA GPUs here; one GCD of the MI250X (half the card)
 is about 2× slower than the RTX 4090.
 
+The workaround on the RX 7900 XTX is to train the emulator on patches, in mini-batches:
+
+```bash
+./run_bench.py --cases online_f32 --label rx_7900_xtx_patches --igm-args \
+    "processes.iceflow.unified.data_preparation.framesizemax=512 processes.iceflow.unified.data_preparation.patches_per_batch=3"
+```
+
+IGM then cuts the domain into patches of at most 512 cells (15 at 400 m, 54 at 200 m) and Adam sweeps them in
+mini-batches of 3 patches per iteration. MIOpen can use a Winograd kernel for the weight gradient of these small
+batches, the 400 m step is halved (584 ms) in 6× less memory, and 300 m and 200 m run (1029 and 2313 ms/step).
+The 1600 m and 800 m steps are 1.3-1.5× faster as well. The ice flow is the same physics on the same cells; the
+training trajectory differs slightly because each mini-batch is an optimizer update. Details and alternatives
+that do not work in [results/rx_7900_xtx/miopen_wrw.md](results/rx_7900_xtx/miopen_wrw.md).
+
 On the AMD GPUs, the finer grids first abort on MIOpen's 4 GiB work-buffer cap; they are rerun with
-`TF_CUDNN_WORKSPACE_LIMIT_IN_MB=12288` (`meta.json` lists them). The RX 7900 XTX then runs out of memory at
-online 300 m (the RTX 4090 runs it).
+`TF_CUDNN_WORKSPACE_LIMIT_IN_MB=12288` (`meta.json` lists them). Before its algorithm search, TensorFlow allocates
+the work buffer of the largest applicable MIOpen algorithm (the GEMM path: 11.7 GB for a convolution over the
+whole 200 m grid) even when MIOpen then selects a kernel that needs none. The RX 7900 XTX runs out of memory at
+online 300 m on the whole grid (the RTX 4090 runs it).
 
 The 100 m points of the figure (`--ratios 1`, 54 M cells) are slow: once an activation tensor exceeds 2³¹
 elements, the convolutions fall back to much slower kernels (about 40×). The memory peak includes cuDNN/XLA
@@ -116,6 +133,13 @@ software stack reaches, and which operation limits the ice flow.
 | AMD Instinct MI300A | 2160 (5300) | 72.4 (122.6) | 17.8 / 17.2 / 10.3 | 28.0 / 27.9 / 20.3 |
 
 To be completed with the NVIDIA GPUs.
+
+On the RX 7900 XTX (RDNA 3, gfx1100) the weight gradient reaches 18-46× less than the forward pass: MIOpen 3.5 has
+no efficient kernel for it on this architecture and falls back to Im2Col + GEMM (`GemmWrwUniversal`). The find
+mode, tuning and newer ROCm (7.2, 10.1) change nothing; the OpenCL kernel that MIOpen hides behind debug switches
+on gfx11 is 7× faster but returns NaN on most shapes. The investigation, the MIOpenDriver probes and the issue
+filed with AMD ([ROCm/rocm-libraries#15446](https://github.com/ROCm/rocm-libraries/issues/15446)) are in
+[results/rx_7900_xtx/miopen_wrw.md](results/rx_7900_xtx/miopen_wrw.md).
 
 ## Add your GPU
 

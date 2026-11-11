@@ -1,0 +1,19 @@
+{
+ "tf_gpu": "Radeon RX 7900 XTX",
+ "tensorflow": "2.17.1",
+ "rocm_build": true,
+ "copy_GBps": 665.68,
+ "matmul_TFLOPs": 25.49,
+ "conv24_fwd_TFLOPs": 12.0,
+ "conv24_bwd_input_TFLOPs": 11.86,
+ "conv24_bwd_filter_TFLOPs": 0.26,
+ "conv24_nchw_fwd_TFLOPs": 26.03,
+ "conv24_nchw_bwd_input_TFLOPs": 26.26,
+ "conv24_nchw_bwd_filter_TFLOPs": 0.27,
+ "conv48_fwd_TFLOPs": 17.9,
+ "conv48_bwd_input_TFLOPs": 19.33,
+ "conv48_bwd_filter_TFLOPs": 0.99,
+ "conv48_nchw_fwd_TFLOPs": 35.03,
+ "conv48_nchw_bwd_input_TFLOPs": 36.27,
+ "conv48_nchw_bwd_filter_TFLOPs": 1.02
+}
